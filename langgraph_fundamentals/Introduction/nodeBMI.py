@@ -42,7 +42,10 @@ getSuggestionprompt = PromptTemplate(
     If the BMI is high, provide tips for decreasing it.
 
     Provide the suggestions in a clear and simple format.
-    """,
+    """
+    
+    
+    ,
     
     # Define the variables that will be passed
     # to the prompt at runtime.
