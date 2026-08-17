@@ -112,6 +112,8 @@ chroma/
 *.pkl
 *.pickle
 models/
+!Models/
+!Models/**
 checkpoints/
 embeddings/
 

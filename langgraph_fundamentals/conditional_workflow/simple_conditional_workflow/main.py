@@ -32,7 +32,11 @@ from langgraph_fundamentals.parallel_workflow.simple_parallel_workflow.node impo
     final_Analysis,
     language_Analysis,
     COT,
-    DOA
+    DOA,
+    final_Evaluation,
+    changeEssageLLM
+    
+
 )
 
 
@@ -47,7 +51,7 @@ graph.add_node("final_Analysis", final_Analysis)
 graph.add_node("DOA", DOA)
 graph.add_node("COT", COT)
 graph.add_node("language_Analysis", language_Analysis)
-
+graph.add_node("final_Evaluation",final_Evaluation)
 
 # Parallel Execution
 graph.add_edge(START, "DOA")
@@ -59,7 +63,16 @@ graph.add_edge(START, "language_Analysis")
 graph.add_edge("DOA", "final_Analysis")
 graph.add_edge("COT", "final_Analysis")
 graph.add_edge("language_Analysis", "final_Analysis")
+graph.add_edge("final_Analysis", "final_Evaluation")
 
+graph.add_conditional_edges(
+    "final_Analysis",
+    "final_Evaluation",
+    {
+        "Passed":END,
+        "Failed": ["DOA", "COT", "language_Analysis"]
+    }
+)
 
 # End
 graph.add_edge("final_Analysis", END)

@@ -1,0 +1,4 @@
+[server]
+# Avoid scanning heavy optional deps (e.g. transformers vision models)
+# that this OpenAI-only app does not use.
+fileWatcherType = "none"
