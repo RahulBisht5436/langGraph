@@ -26,17 +26,15 @@ import streamlit as st
 
 from langgraph.graph import StateGraph, START, END
 
-from langgraph_fundamentals.parallel_workflow.simple_parallel_workflow.state import state
+from langgraph_fundamentals.conditional_workflow.simple_conditional_workflow.state import state
 
-from langgraph_fundamentals.parallel_workflow.simple_parallel_workflow.node import (
-    final_Analysis,
-    language_Analysis,
-    COT,
+from langgraph_fundamentals.conditional_workflow.simple_conditional_workflow.node import (
     DOA,
+    COT,
+    language_Analysis,
+    final_Analysis,
     final_Evaluation,
-    changeEssageLLM
-    
-
+    changeEssageLLM,
 )
 
 
@@ -46,36 +44,49 @@ from langgraph_fundamentals.parallel_workflow.simple_parallel_workflow.node impo
 
 graph = StateGraph(state)
 
-# Adding Nodes
-graph.add_node("final_Analysis", final_Analysis)
 graph.add_node("DOA", DOA)
 graph.add_node("COT", COT)
 graph.add_node("language_Analysis", language_Analysis)
-graph.add_node("final_Evaluation",final_Evaluation)
-graph.add_node("changeEssageLLM",changeEssageLLM)
-# Parallel Execution
+graph.add_node("final_Analysis", final_Analysis)
+graph.add_node("changeEssageLLM", changeEssageLLM)
+
+# Parallel fan-out
 graph.add_edge(START, "DOA")
 graph.add_edge(START, "COT")
 graph.add_edge(START, "language_Analysis")
 
-
-# Join all parallel branches
+# Fan-in
 graph.add_edge("DOA", "final_Analysis")
 graph.add_edge("COT", "final_Analysis")
 graph.add_edge("language_Analysis", "final_Analysis")
-graph.add_edge("final_Analysis", "final_Evaluation")
 
+# Conditional: pass → END, fail → rewrite essay and retry
 graph.add_conditional_edges(
     "final_Analysis",
-    "final_Evaluation",
+    final_Evaluation,
     {
-        "Passed":END,
-        "Failed": "changeEssageLLM"
-    })
+        "Passed": END,
+        "Failed": "changeEssageLLM",
+    },
+)
 
+# Retry loop
 graph.add_edge("changeEssageLLM", "DOA")
 graph.add_edge("changeEssageLLM", "COT")
 graph.add_edge("changeEssageLLM", "language_Analysis")
+
+app = graph.compile()
+
+
+# ---------------------------------------------------------
+# Streamlit UI
+# ---------------------------------------------------------
+
+st.set_page_config(
+    page_title="AI Essay Evaluator",
+    page_icon="📝",
+    layout="wide",
+)
 
 st.title("📝 AI Essay Evaluator")
 
@@ -91,14 +102,13 @@ st.write(
 
 topic = st.text_input(
     "Essay Topic",
-    placeholder="Enter your essay topic..."
+    placeholder="Enter your essay topic...",
 )
-
 
 essay = st.text_area(
     "Essay",
     placeholder="Write or paste your essay here...",
-    height=300
+    height=300,
 )
 
 
@@ -123,13 +133,10 @@ if st.button("Evaluate Essay", type="primary"):
                 result = app.invoke(
                     {
                         "topic": topic,
-                        "essay": essay
-                    }
+                        "essay": essay,
+                    },
+                    config={"recursion_limit": 25},
                 )
-
-                # -------------------------------------------------
-                # Final Score
-                # -------------------------------------------------
 
                 st.success("Evaluation completed!")
 
@@ -139,15 +146,10 @@ if st.button("Evaluate Essay", type="primary"):
 
                 st.metric(
                     label="Final Score",
-                    value=f"{result['final_score']}/10"
+                    value=f"{result['final_score']}/10",
                 )
 
                 st.write(result["final_summary"])
-
-
-                # -------------------------------------------------
-                # Individual Scores
-                # -------------------------------------------------
 
                 st.divider()
 
@@ -155,60 +157,23 @@ if st.button("Evaluate Essay", type="primary"):
 
                 col1, col2, col3 = st.columns(3)
 
-
-                # Depth of Analysis
                 with col1:
-
                     st.subheader("🔍 Depth of Analysis")
+                    st.metric("Score", f"{result['DOA_score']}/10")
+                    st.write(result["DOA_summary"])
 
-                    st.metric(
-                        "Score",
-                        f"{result['DOA_score']}/10"
-                    )
-
-                    st.write(
-                        result["DOA_summary"]
-                    )
-
-
-                # Clarity of Thought
                 with col2:
-
                     st.subheader("💡 Clarity of Thought")
+                    st.metric("Score", f"{result['COT_score']}/10")
+                    st.write(result["COT_summary"])
 
-                    st.metric(
-                        "Score",
-                        f"{result['COT_score']}/10"
-                    )
-
-                    st.write(
-                        result["COT_summary"]
-                    )
-
-
-                # Language
                 with col3:
-
                     st.subheader("📚 Language & Grammar")
-
-                    st.metric(
-                        "Score",
-                        f"{result['language_score']}/10"
-                    )
-
-                    st.write(
-                        result["language_summary"]
-                    )
-
-
-                # -------------------------------------------------
-                # Raw Result
-                # -------------------------------------------------
+                    st.metric("Score", f"{result['language_score']}/10")
+                    st.write(result["language_summary"])
 
                 with st.expander("View Complete LangGraph State"):
-
                     st.json(result)
-
 
             except Exception as e:
 

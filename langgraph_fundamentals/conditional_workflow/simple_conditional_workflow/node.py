@@ -1,4 +1,4 @@
-from langgraph_fundamentals.parallel_workflow.simple_parallel_workflow.state import state , DOAResult , COTResult ,LanguageResult ,FinalResult
+from langgraph_fundamentals.conditional_workflow.simple_conditional_workflow.state import state , DOAResult , COTResult ,LanguageResult ,FinalResult
 from Models.openAI_llm import llm
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -386,15 +386,12 @@ def final_Analysis(state: state) -> dict:
 
 
 def final_Evaluation(state: state) -> str:
-    if state["final_score"]>6:
+    if state["final_score"] > 6:
         return "Passed"
-    return "failed"
+    return "Failed"
+
 
 def changeEssageLLM(state: state) -> dict:
     chainEssay = createEssayPrompt | llm | parser
-    result = chainEssay.invoke({
-        "topic":state.invoke
-    })
-    return {
-        "topic" : result.content
-    }
+    essay = chainEssay.invoke({"topic": state["topic"]})
+    return {"essay": essay}
