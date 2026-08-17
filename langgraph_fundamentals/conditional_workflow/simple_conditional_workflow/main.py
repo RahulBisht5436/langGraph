@@ -52,7 +52,7 @@ graph.add_node("DOA", DOA)
 graph.add_node("COT", COT)
 graph.add_node("language_Analysis", language_Analysis)
 graph.add_node("final_Evaluation",final_Evaluation)
-
+graph.add_node("changeEssageLLM",changeEssageLLM)
 # Parallel Execution
 graph.add_edge(START, "DOA")
 graph.add_edge(START, "COT")
@@ -70,26 +70,12 @@ graph.add_conditional_edges(
     "final_Evaluation",
     {
         "Passed":END,
-        "Failed": ["DOA", "COT", "language_Analysis"]
-    }
-)
+        "Failed": "changeEssageLLM"
+    })
 
-
-
-# Compile Graph
-app = graph.compile()
-
-
-# ---------------------------------------------------------
-# Streamlit UI
-# ---------------------------------------------------------
-
-st.set_page_config(
-    page_title="AI Essay Evaluator",
-    page_icon="📝",
-    layout="wide"
-)
-
+graph.add_edge("changeEssageLLM", "DOA")
+graph.add_edge("changeEssageLLM", "COT")
+graph.add_edge("changeEssageLLM", "language_Analysis")
 
 st.title("📝 AI Essay Evaluator")
 
